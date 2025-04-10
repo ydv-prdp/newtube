@@ -1,4 +1,4 @@
-// import { relations } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import { pgTable,uuid,text,timestamp, uniqueIndex, integer, pgEnum, primaryKey } from "drizzle-orm/pg-core"; 
 
 import {
@@ -62,10 +62,17 @@ export const videoInsertSchema = createInsertSchema(videos)
 export const videoUpdateSchema = createUpdateSchema(videos)
 export const videoSelectSchema = createSelectSchema(videos)
 
-// export const userRelations = relations(users,({many})=>({
-//     videos:many(videos),
-//     videoViews:many(videoViews)
-// }))
+export const userRelations = relations(users,({many})=>({
+    videos:many(videos),
+    videoViews:many(videoViews),
+    videoReactions:many(videoViews),
+    subscriptions:many(subscriptions,{
+        relationName:"subsriptions_viewer_id_fkey"
+    }),
+    subscribers:many(subscriptions,{
+        relationName:"subscriptions_creator_id_fkey"
+    })
+}))
 
 // export const videoRelations = relations(videos,({one,many})=>(
 //     {
@@ -126,3 +133,29 @@ export const videoReactions = pgTable("video_reactions",{
 export const videoReactionSelectionSchema = createSelectSchema(videoReactions);
 export const videoReactionInsertSchema = createInsertSchema(videoReactions);
 export const videoReactionUpdateSchema = createUpdateSchema(videoReactions);
+
+
+export const subscriptions = pgTable("subscriptions",{
+    viewerId:uuid("viewer_id").references(()=>users.id,{onDelete:"cascade"}).notNull(),
+    creatorId:uuid("creator_id").references(()=>users.id,{onDelete:"cascade"}).notNull(),
+    createdAt:timestamp("created_at").defaultNow().notNull(),
+    updatedAt:timestamp("updated_at").defaultNow().notNull()
+},(t)=>[
+    primaryKey({
+        name:"subscriptions_pk",
+        columns:[t.viewerId, t.creatorId]
+    })
+])
+
+export const subsciptionRelations=relations(subscriptions,({one})=>({
+    viewerId:one(users,{
+        fields:[subscriptions.viewerId],
+        references:[users.id],
+        relationName:"subsriptions_viewer_id_fkey"
+    }),
+    creatorId:one(users,{
+        fields:[subscriptions.creatorId],
+        references:[users.id],
+        relationName:"subscriptions_creator_id_fkey"
+    })
+}))
